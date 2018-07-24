@@ -1,2 +1,2 @@
-# avl-binary-tree
-balanced binary tree data structure using php and phpunit
+# avl-tree
+balanced binary search tree data structure using php and phpunit
