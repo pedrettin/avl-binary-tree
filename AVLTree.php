@@ -90,11 +90,11 @@ class AVLTree {
 	* @param Node $Node 
 	* @param string $Rotation
 	* @return string|boolean returns a string indicating which rotation is needed 
-	* 											"LL" - left rotation
-	* 											"RR" - right rotation
-	* 											"LR" - left right rotation
-	* 											"RL" - right left rotation
-	* 											false is returned if no rotation is needed
+	* "LL" - left rotation
+	* "RR" - right rotation
+	* "LR" - left right rotation
+	* "RL" - right left rotation
+	* false is returned if no rotation is needed
 	*/
 	private function determineRotation ($Node, $Rotation = '') {
 		$Parent = $Node->Parent;
