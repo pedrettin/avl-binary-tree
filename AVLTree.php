@@ -9,14 +9,21 @@ class Node {
 	public $Right;
 	public $value;
 	public $Parent;
-	public $height;
 
-	public function __construct ($value, $Parent = null, $Left = null, $Right = null, $height = 0) {
+	public function __construct ($value, $Parent = null, $Left = null, $Right = null) {
 		$this->value = $value;
 		$this->Left = $Left;
 		$this->Right = $Right;
 		$this->Parent = $Parent;
-		$this->height = $height;
+	}
+	
+	public function __toString () {
+		$nodeToString = '';
+		$nodeToString .= "  " . $this->value . "\n";
+		$nodeToString .= ($this->Left ? " /" : " ") . "  " . ($this->Right ? "\\" : "") . "\n";
+		$leftNode = ($this->Left ? $this->Left->value : "");
+		$rightNode = ($this->Right ? $this->Right->value : "");
+		return 	$nodeToString . $leftNode . "    " . $rightNode . "\n\n";
 	}
 
 }
@@ -24,7 +31,6 @@ class Node {
 class AVLTree {
 	
 	private $Root = null;
-	private $numNodes = 0;
 
 	/**
 	* Pushes the passed in value in the correct place in the tree
@@ -33,7 +39,6 @@ class AVLTree {
 	public function push ($value) {
 		if (!$this->Root) {
 			$this->Root = new Node($value);
-			$this->numNodes++;
 		} else {
 			$this->pushWrapped($value, $this->Root);
 		}
@@ -50,12 +55,92 @@ class AVLTree {
 			$this->pushWrapped($value, $Node->Right);
 		} else if ($value > $Node->value) {
 			$Node->Right = $this->createLeaf($value, $Node);
-			$this->numNodes++;
+			$this->balanceTree($Node->Right);
 		} else if ($value < $Node->value && $Node->Left) {
 			$this->pushWrapped($value, $Node->Left);
 		} else if ($value < $Node->value) {
 			$Node->Left = $this->createLeaf($value, $Node);
-			$this->numNodes++;
+			$this->balanceTree($Node->Left);
+		}
+	}
+	
+	/**
+	* Given a new node it checks to see if the tree needs to be balanced and
+	* performs a rotation if necessary.
+	* @param Node $NewNode
+	*/
+	private function balanceTree ($NewNode) {
+		$Rotation = $this->determineRotation($NewNode);
+		if ($Rotation == "LL") {
+			$this->rotateLeft($NewNode->Parent);
+		} else if ($Rotation == "RR") {
+			$this->rotateRight($NewNode->Parent);
+		} else if ($Rotation == "LR") {
+			$this->rotateLeft($NewNode);
+			$this->rotateRight($NewNode);
+		} else if ($Rotation == "RL") {
+			$this->rotateRight($NewNode);
+			$this->rotateLeft($NewNode);
+		}
+	}
+	
+	/**
+	* Determines which rotation needs to be performed (if any) to balance the tree.
+	* The first time this method is called it should be passed in the newly inserted node
+	* @param Node $Node 
+	* @param string $Rotation
+	* @return string|boolean returns a string indicating which rotation is needed 
+	* 											"LL" - left rotation
+	* 											"RR" - right rotation
+	* 											"LR" - left right rotation
+	* 											"RL" - right left rotation
+	* 											false is returned if no rotation is needed
+	*/
+	private function determineRotation ($Node, $Rotation = '') {
+		$Parent = $Node->Parent;
+		if (strlen($Rotation) == 2) { return $Rotation; }
+		if (!$Parent || ($Parent->Right && $Parent->Left)) { return false; }
+		if ($Node->value < $Node->Parent->value) { 
+			$Rotation .= "R";
+		} else {
+			$Rotation .= "L";
+		}
+		return $this->determineRotation($Node->Parent, $Rotation);
+	}
+	
+	/**
+	* Given the middle node it performs a left rotation
+	* @param Node $Node middle node
+	*/
+	private function rotateLeft ($Node) {
+		$Node->Left = $Node->Parent;
+		$Node->Parent->Right = null;
+		if ($Node->Parent === $this->Root) {
+			$this->Root = $Node;
+		}
+		$Node->Parent = $Node->Parent->Parent;
+		if ($Node->Parent && $Node->Parent->value > $Node->value) {
+			$Node->Parent->Left = $Node;
+		} else if ($Node->Parent) {
+			$Node->Parent->Right = $Node;
+		}
+	}
+	
+	/**
+	* Given the middle node it performs a right rotation
+	* @param Node $Node middle node
+	*/
+	private function rotateRight ($Node) {
+		$Node->Right = $Node->Parent;
+		$Node->Parent->Left = null;
+		if ($Node->Parent === $this->Root) {
+			$this->Root = $Node;
+		}
+		$Node->Parent = $Node->Parent->Parent;
+		if ($Node->Parent && $Node->Parent->value > $Node->value) {
+			$Node->Parent->Left = $Node;
+		} else if ($Node->Parent) {
+			$Node->Parent->Right = $Node;
 		}
 	}
 	
@@ -121,7 +206,6 @@ class AVLTree {
 		} else {
 			$this->removeTwoChildren($NodeToRemove);
 		}
-		$this->numNodes--;
 	}
 
 	/**
@@ -169,46 +253,25 @@ class AVLTree {
 	* @return int
 	*/
 	public function getNumNodes () {
-		return $this->numNodes;
+		if (!$this->Root) { return 0; } 
+		return $this->getNumNodesWrapped($this->Root);
 	}
 	
 	/**
-	* Given a recently added node it goes through the tree starting from that node 
-	* and makes sure it is still balanced 
-	* @param Node $Node
+	* Recursively counts the number of nodes in the tree
+	* @param Node $Node - node currently being analyzed
+	* @return int
 	*/
-	private function balanceAfterPush ($Node) {
-		if (!$Node) { 
-			return; 
+	private function getNumNodesWrapped ($Node) {
+		$numNodes = 1;
+		if (!$Node->Left && !$Node->Right) {return $numNodes;}
+		if ($Node->Right) {
+			$numNodes += $this->getNumNodesWrapped($Node->Right);
 		}
-		if ($Node->Left && $Node->Right) {
-			if ($Node->Left->height == $Node->heigth || $Node->Right->height == $Node->height) {
-				$Node->height++;
-			}
-			if ($Node->Left->height - $Node->Right->height > 1) {
-				
-			}
-			$this->balanceAfterPush($Node->Parent);
-		} else if ($Node->Left && !$Node->Right) {
-			if ($Node->Left->height == $Node->heigth) {
-				$Node->height++;
-			}
-			if ($Node->Left->height > 0) {
-				
-			}
-			$this->balanceAfterPush($Node->Parent);
-		} else if (!$Node->Left && $Node->Right) {
-			if ($Node->Right->height == $Node->heigth) {
-				$Node->height++;
-			}
-			if ($Node->Right->height > 0) {
-				
-			}
-			$this->balanceAfterPush($Node->Parent);
-		} else {
-			$Node->height++;
-			$this->balanceAfterPush($Node->Parent);
+		if ($Node->Left) {
+			$numNodes += $this->getNumNodesWrapped($Node->Left);
 		}
+		return $numNodes;
 	}
 	
 }
